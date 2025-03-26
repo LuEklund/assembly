@@ -1,17 +1,3 @@
-CONTROLLER_LATCH = $4016
-CONTROLLER1_DATA = $4016
-CONTROLLER2_DATA = $4017
-
-CONTROLLER_MSK_A = $01
-CONTROLLER_MSK_B = $02
-CONTROLLER_MSK_SELECT = $04
-CONTROLLER_MSK_START = $08
-CONTROLLER_MSK_UP = $10
-CONTROLLER_MSK_DOWN = $20
-CONTROLLER_MSK_LEFT = $40
-CONTROLLER_MSK_RIGHT = $80
-
-
 .segment "HEADER"
 	.byte "NES"		;identification string
 	.byte $1A
@@ -22,7 +8,6 @@ CONTROLLER_MSK_RIGHT = $80
 	.byte $00, $00, $00, $00, $00
 .segment "ZEROPAGE"
 PLAYER_SPRITE:	.RES 4	;reserves 1 byte of memory for a variable named VAR
-controller_data: .RES 1
 .segment "STARTUP"
 RESET:
 	SEI 		;disables interupts
@@ -99,8 +84,15 @@ COPY_PLAYER_SPRITE:
     INX
     CPX #$04
     BNE COPY_PLAYER_SPRITE
+    ;Load sprites
+    LDX #$00
+LOADSPRITES:
+    LDA PLAYER_SPRITE, X
+    STA $0200, X
+    INX
+    CPX #$04
+    BNE LOADSPRITES
 
-    JSR load_sprites
 
 
 
@@ -156,53 +148,14 @@ LOADBACKGROUNDPALETTEDATA:
 
     ; Game loop RIGHT?
     INFLOOP:
-        JSR controller_read_routine
-        LDA controller_data
-        
-        AND #CONTROLLER_MSK_DOWN
-        CLC
-        ADC #$FF
         LDX PLAYER_SPRITE
-        BCC NO_DOWN
         INX
-    NO_DOWN:
         STX PLAYER_SPRITE
-:
-    	BIT $2002
-	    BPL :-
         JMP INFLOOP
 
 
 
-    ;Load sprites
-load_sprites:
-    LDX #$00
-LOADSPRITES_LOOP:
-    LDA PLAYER_SPRITE, X
-    STA $0200, X
-    INX
-    CPX #$04
-    BNE LOADSPRITES_LOOP
-    RTS
-
-
-controller_read_routine:
-  lda #$01
-  sta CONTROLLER_LATCH
-  lda #$00
-  sta CONTROLLER_LATCH
-
-  .repeat 8
-    lda CONTROLLER1_DATA
-    lsr
-    ror controller_data
-  .endrepeat
-
-  rts
-
-
 NMI:
-    JSR load_sprites
     LDA #$02
     STA $4014
     RTI
