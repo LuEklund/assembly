@@ -24,7 +24,7 @@ CONTROLLER_MSK_RIGHT = $80
 DIRECTIONS:     .RES 1 ; RLUD PREV and NEW Directions
 SNEK_LEN:       .RES 1
 TIMER:          .RES 1 ;SLow Snake down
-PLAYER_SPRITE:	.RES 16	;reserves 1 byte of memory for a variable named VAR
+PLAYER_SPRITE:	.RES 84	;reserves 1 byte of memory for a variable named VAR
 controller_data: .RES 1
 .segment "STARTUP"
 RESET:
@@ -32,7 +32,7 @@ RESET:
 	CLD			;turn off decimal mode
 	
 
-    LDX #$FF
+    LDX #$FF    ; init stack
     TXS
 
 	LDX #%1000000	;disable sound IRQ
@@ -92,7 +92,7 @@ CLEARMEMORY: ;$0000 - $07FF
     ;Setup Player Direction
     LDX #%00001000
     STX DIRECTIONS
-    ;Snek Snek len
+    ;Snek Snek len + APEL!!!!!
     LDX #%00000100
     STX SNEK_LEN
     ;Timer Clear
@@ -109,13 +109,33 @@ LOADPALETTES:
 
 
     ;Copy sprites from ROM to RAM
+
     LDX #$00
 COPY_PLAYER_SPRITE:
     LDA SPRITEDATA, X
     STA PLAYER_SPRITE, X
     INX
-    CPX #$10
+    CPX #$08
     BNE COPY_PLAYER_SPRITE
+COPY_PLAYER_BODY:
+    LDY #$08
+    LDA SPRITEDATA, Y ; Y POS
+    STA PLAYER_SPRITE, X
+    INX
+    INY
+    LDA SPRITEDATA, Y ; SPRITE
+    STA PLAYER_SPRITE, X
+    INX
+    INY
+    LDA SPRITEDATA, Y ; ATTRIBUTES
+    STA PLAYER_SPRITE, X
+    INX
+    INY
+    LDA SPRITEDATA, Y ; X POS
+    STA PLAYER_SPRITE, X
+    INX
+    CPX #$54
+    BNE COPY_PLAYER_BODY
 
     JSR load_sprites
 
@@ -150,13 +170,23 @@ COPY_PLAYER_SPRITE:
 
     ;Load sprites
 load_sprites:
-    LDX #$00
+    LDX SNEK_LEN
+    LDA #$00
+    MULTI:
+        CLC
+        ADC #$04
+        DEX
+        BNE MULTI
+    TAX
+    DEX
 LOADSPRITES_LOOP:
     LDA PLAYER_SPRITE, X
     STA $0200, X
-    INX
-    CPX #$10
+    DEX
+    CPX #$00
     BNE LOADSPRITES_LOOP
+    LDA PLAYER_SPRITE, X
+    STA $0200, X
     RTS
 
 
@@ -234,10 +264,9 @@ move_player_routine:
     INX
     CPX #$18
     STX TIMER
-    BNE TIMER_NOT_DONE
-    LDX #$00
-    STX TIMER
-
+    BEQ TIME_DONE
+    rts
+    TIME_DONE:
 
 
     ;GET HEAD POSITIONS
@@ -288,17 +317,46 @@ move_player_routine:
     PHA
 
 
-    ;On apple?
+    ;On apple Y position?
     CMP PLAYER_SPRITE
     BNE NOT_APPLE
     TXA
     LDX #$03
+    ; On apple X position
     CMP PLAYER_SPRITE, X
     BNE NOT_APPLE
-    LDY #$03
-    LDX #$01
-    STY PLAYER_SPRITE, X
 
+
+    LDA #$00
+    LDX TIMER
+    MULTI_APPLE:
+        CLC
+        ADC #$08
+        DEX
+        CPX #$00
+        BNE MULTI_APPLE
+    STA TIMER
+    LDX #$03 
+    LDA PLAYER_SPRITE, X ; LOAD APPLE X POS
+    CLC
+    ADC TIMER
+    LDX #$03
+    STA PLAYER_SPRITE, X
+
+    LDA PLAYER_SPRITE ; LOAD Y POS
+    CLC
+    ADC TIMER
+    CLC
+    CMP #$DF
+    BCC VALID_Y_VALUE
+    LDA #$DF
+    VALID_Y_VALUE:
+
+    STA PLAYER_SPRITE
+
+    LDX SNEK_LEN ;Increase snek len
+    INX
+    STX SNEK_LEN
 
     NOT_APPLE:
 
@@ -321,7 +379,10 @@ move_player_routine:
     STA PLAYER_SPRITE, Y ; Save new player X pos
 
 
-    TIMER_NOT_DONE:
+    ;RESET TIMER
+    LDX #$00
+    STX TIMER
+
     rts
 
 
@@ -418,6 +479,7 @@ SPRITEDATA:
     .byte $37, $02, $00, $50 ; apel
    	.byte $37, $00, $00, $40 ;Snake head
     .byte $37, $01, $00, $38 ;Snake body
+    .byte $37, $01, $00, $30 ;Snake body
     .byte $37, $01, $00, $30 ;Snake body
 
 
