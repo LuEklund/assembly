@@ -24,7 +24,7 @@ CONTROLLER_MSK_RIGHT = $80
 DIRECTIONS:     .RES 1 ; RLUD PREV and NEW Directions
 SNEK_LEN:       .RES 1
 TIMER:          .RES 1 ;SLow Snake down
-PLAYER_SPRITE:	.RES 12	;reserves 1 byte of memory for a variable named VAR
+PLAYER_SPRITE:	.RES 16	;reserves 1 byte of memory for a variable named VAR
 controller_data: .RES 1
 .segment "STARTUP"
 RESET:
@@ -93,7 +93,7 @@ CLEARMEMORY: ;$0000 - $07FF
     LDX #%00001000
     STX DIRECTIONS
     ;Snek Snek len
-    LDX #%00000011
+    LDX #%00000100
     STX SNEK_LEN
     ;Timer Clear
     LDX #$00
@@ -114,7 +114,7 @@ COPY_PLAYER_SPRITE:
     LDA SPRITEDATA, X
     STA PLAYER_SPRITE, X
     INX
-    CPX #$0C
+    CPX #$10
     BNE COPY_PLAYER_SPRITE
 
     JSR load_sprites
@@ -155,7 +155,7 @@ LOADSPRITES_LOOP:
     LDA PLAYER_SPRITE, X
     STA $0200, X
     INX
-    CPX #$0C
+    CPX #$10
     BNE LOADSPRITES_LOOP
     RTS
 
@@ -240,20 +240,15 @@ move_player_routine:
 
 
 
-    LDA SNEK_LEN
-    DO_NEXT_BODY:
-    JSR update_bodies_routine
-    CLC
-    SBC 1
-    CMP #$01
-    BNE DO_NEXT_BODY
-
-    ;MOVE HEAD
-    LDY #$03
+    ;GET HEAD POSITIONS
+    LDY #$07
     LDX PLAYER_SPRITE, Y    ; Player X pos
-    LDY PLAYER_SPRITE       ; Player Y pos
+    TXA
+    LDX #$04
+    LDY PLAYER_SPRITE, X       ; Player Y pos
+    TAX
 
-    ; RIght Move
+    ; RIght UPDATE
     LDA DIRECTIONS
     EOR #%00001000 ;Right
     BNE NOT_RIGHT
@@ -261,7 +256,7 @@ move_player_routine:
     ADC #$07
     TAX
     NOT_RIGHT:
-    ;Left MOve
+    ;Left UPDATE
     LDA DIRECTIONS
     EOR #%00000100 ;LEFT
     BNE NOT_LEFT
@@ -269,7 +264,7 @@ move_player_routine:
     SBC #$08
     TAX
     NOT_LEFT:
-    ;Up MOve
+    ;Up UPDATE
     LDA DIRECTIONS
     EOR #%00000010 ;Up
     BNE NOT_UP
@@ -277,7 +272,7 @@ move_player_routine:
     SBC #$08
     TAY
     NOT_UP:
-    ;Down MOve
+    ;Down UPDATE
     LDA DIRECTIONS
     EOR #%00000001 ;DOWN
     BNE NOT_DOWN
@@ -287,9 +282,44 @@ move_player_routine:
     NOT_DOWN:
 
 
-    STY PLAYER_SPRITE   ;Save new player Y pos
+    TXA
+    PHA
+    TYA
+    PHA
+
+
+    ;On apple?
+    CMP PLAYER_SPRITE
+    BNE NOT_APPLE
+    TXA
+    LDX #$03
+    CMP PLAYER_SPRITE, X
+    BNE NOT_APPLE
     LDY #$03
-    STX PLAYER_SPRITE, Y ; Save new player X pos
+    LDX #$01
+    STY PLAYER_SPRITE, X
+
+
+    NOT_APPLE:
+
+
+    LDA SNEK_LEN
+    DO_NEXT_BODY:
+    JSR update_bodies_routine
+    CLC
+    SBC 1
+    CMP #$02
+    BNE DO_NEXT_BODY
+
+
+
+    PLA
+    LDX #$04
+    STA PLAYER_SPRITE, X   ;Save new player Y pos
+    PLA
+    LDY #$07
+    STA PLAYER_SPRITE, Y ; Save new player X pos
+
 
     TIMER_NOT_DONE:
     rts
@@ -385,9 +415,13 @@ PALETTEDATA:
 
 SPRITEDATA:
     ;Y, SPRITE NUM, attributes, X
+    .byte $37, $02, $00, $50 ; apel
    	.byte $37, $00, $00, $40 ;Snake head
     .byte $37, $01, $00, $38 ;Snake body
-    .byte $37, $01, $00, $34 ;Snake body
+    .byte $37, $01, $00, $30 ;Snake body
+
+
+
 
 
 .segment "VECTORS"
