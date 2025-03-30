@@ -22,9 +22,10 @@ CONTROLLER_MSK_RIGHT = $80
 	.byte $00, $00, $00, $00, $00
 .segment "ZEROPAGE"
 DIRECTIONS:     .RES 1 ; RLUD PREV and NEW Directions
+HEAD_ON_BODY:    .RES 1  ; Will be used for collison check
 SNEK_LEN:       .RES 1
 TIMER:          .RES 1 ;SLow Snake down
-PLAYER_SPRITE:	.RES 84	;reserves 1 byte of memory for a variable named VAR
+PLAYER_SPRITE:	.RES 84	;APple head and bodies
 controller_data: .RES 1
 .segment "STARTUP"
 RESET:
@@ -93,7 +94,7 @@ CLEARMEMORY: ;$0000 - $07FF
     LDX #%00001000
     STX DIRECTIONS
     ;Snek Snek len + APEL!!!!!
-    LDX #%00000100
+    LDX #%00000101
     STX SNEK_LEN
     ;Timer Clear
     LDX #$00
@@ -387,77 +388,81 @@ move_player_routine:
 
 
 update_bodies_routine:
-    ;MOVE BODY
-    ; X DIRECTIONs
-    PHA
-    TAX
-    LDA #$00
-    DEX
-    MUTIPLY1:
-        CLC
-        ADC #04 
-        DEX
-        CPX #$00
-        BNE MUTIPLY1
-    CLC
-    SBC 1
-    TAX
-    LDY PLAYER_SPRITE, X    ; BEFORE BODY X POS
-    PLA
-    PHA
+    ;VALIDATE BODY MOVEMENT
 
-    TAX
-    LDA #$00
-    MUTIPLY2:
-        CLC
-        ADC #04 
-        DEX
-        CPX #$00
-        BNE MUTIPLY2
-    CLC
-    SBC 1
-    TAX
-    STY PLAYER_SPRITE, X    ; CURRENT BODY X POS
-
+    
+    PHA ;save current len
     ; Y DIRECTIONs
-    PLA
-    PHA
-    TAX
-    LDA #$00
-    DEX
-    MUTIPLY_Y_BEFORE:
-        CLC
-        ADC #04 
-        DEX
-        CPX #$00
-        BNE MUTIPLY_Y_BEFORE
     SEC
-    SBC #$04
-    TAX
-    LDY PLAYER_SPRITE, X    ; BEFORE BODY X POS
-    PLA
-    PHA
+    SBC #$02
+    ASL A
+    ASL A
 
     TAX
-    LDA #$00
-    MUTIPLY_Y_CURRENT:
-        CLC
-        ADC #04 
-        DEX
-        CPX #$00
-        BNE MUTIPLY_Y_CURRENT
-    SEC
-    SBC #$04
+    LDY PLAYER_SPRITE, X    ; BEFORE BODY Y POS
+    
+    CLC
+    ADC #$04
+    
+    TAX ;save old Y Pos in HEAD_ON_BODY
+    TYA
+    LDY PLAYER_SPRITE, X
+    STY HEAD_ON_BODY
+    TAY
+    STY PLAYER_SPRITE, X    ; CURRENT BODY Y POS
+    TXA
+
+    ;Y Collision check with HEAD
+    LDX #$04
+    LDY PLAYER_SPRITE, X
+    CPY HEAD_ON_BODY
+    BEQ NO_Y_COL
+        LDX #$00
+        STX HEAD_ON_BODY
+    NO_Y_COL:
+
+    ; X DIRECTIONs
+    SEC 
+    SBC #$01
+    TAX
+    LDY PLAYER_SPRITE, X    ; BEFORE BODY X POS
+
+    CLC
+    ADC #04
+
+    PHA ;save important variables in stack
+    TAX
+    TYA
+    PHA
+    TXA
+
+    LDX HEAD_ON_BODY
+    CPX #$00
+    BEQ NO_COL ;If Y collison then check X Collision  with head
+    TAX     
+    LDY PLAYER_SPRITE, X
+    STY HEAD_ON_BODY
+    LDX #$07
+    LDY PLAYER_SPRITE, X
+    CPY HEAD_ON_BODY
+    BNE NO_COL
+        JMP RESET
+    NO_COL:
+    LDX #$00
+    STX HEAD_ON_BODY
+
+    PLA ; retrieve important variables
+    TAY
+    PLA
+
     TAX
     STY PLAYER_SPRITE, X    ; CURRENT BODY X POS
 
-    ;LDY #$00
-    ;LDX PLAYER_SPRITE, Y    ; HEAD Y POS
 
-    ;LDY #$04
-    ;STX PLAYER_SPRITE, Y    ; BODY Y POS
 
-    PLA
+
+
+    PLA ;Take next snake len before rts
     rts
 
 
