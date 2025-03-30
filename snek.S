@@ -476,16 +476,17 @@ NMI:
     RTI
 
 PALETTEDATA:
+    ;.incbin "rom.pal"
 	.byte $00, $0F, $00, $10, 	$00, $0A, $15, $01, 	$00, $29, $28, $27, 	$00, $34, $24, $14 	;background palettes
-	.byte $31, $0F, $15, $30, 	$00, $0F, $11, $30, 	$00, $0F, $30, $27, 	$00, $3C, $2C, $1C 	;sprite palettes
+ .byte $01, $28, $1F, $21,     $01, $06, $15, $36,     $00, $0F, $30, $27,     $00, $3C, $2C, $1C 
+
+	;.byte $31, $0F, $15, $30, 	$00, $0F, $11, $30, 	$00, $0F, $30, $27, 	$00, $3C, $2C, $1C 	;sprite palettes
 
 SPRITEDATA:
     ;Y, SPRITE NUM, attributes, X
-    .byte $37, $02, $00, $50 ; apel
-   	.byte $37, $00, $00, $40 ;Snake head
+    .byte $37, $02, $01, $50 ; apel
+   	.byte $37, $03, %00000000, $40 ;Snake head
     .byte $37, $01, $00, $38 ;Snake body
-    .byte $37, $01, $00, $30 ;Snake body
-    .byte $37, $01, $00, $30 ;Snake body
 
 
 
