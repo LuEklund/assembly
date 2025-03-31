@@ -25,7 +25,7 @@ DIRECTIONS:     .RES 1 ; RLUD PREV and NEW Directions
 HEAD_ON_BODY:    .RES 1  ; Will be used for collison check
 SNEK_LEN:       .RES 1
 TIMER:          .RES 1 ;SLow Snake down
-PLAYER_SPRITE:	.RES 164	;APple head and bodies
+PLAYER_SPRITE:	.RES 168	;APple head and bodies
 controller_data: .RES 1
 .segment "STARTUP"
 RESET:
@@ -94,7 +94,7 @@ CLEARMEMORY: ;$0000 - $07FF
     LDX #%00001000
     STX DIRECTIONS
     ;Snek Snek len + APEL!!!!!
-    LDX #%00010101
+    LDX #%00000101
     STX SNEK_LEN
     ;Timer Clear
     LDX #$00
@@ -135,7 +135,7 @@ COPY_PLAYER_BODY:
     LDA SPRITEDATA, Y ; X POS
     STA PLAYER_SPRITE, X
     INX
-    CPX #$54
+    CPX #$A0
     BNE COPY_PLAYER_BODY
 
     JSR load_sprites
@@ -261,11 +261,12 @@ update_direction_routine:
 
 move_player_routine:
     ;TIMER check
-    LDX TIMER
-    INX
-    CPX #$08
-    STX TIMER
-    BEQ TIME_DONE
+    LDA TIMER
+    CLC
+    ADC SNEK_LEN
+    CMP #$14
+    STA TIMER
+    BPL TIME_DONE
     rts
     TIME_DONE:
 
@@ -423,6 +424,11 @@ move_player_routine:
     LDX SNEK_LEN ;Increase snek len
     INX
     STX SNEK_LEN
+
+    CPX #$14
+    BNE CONTINUE_GAME
+        JMP RESET
+    CONTINUE_GAME:
 
     NOT_APPLE:
 
