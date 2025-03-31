@@ -25,7 +25,7 @@ DIRECTIONS:     .RES 1 ; RLUD PREV and NEW Directions
 HEAD_ON_BODY:    .RES 1  ; Will be used for collison check
 SNEK_LEN:       .RES 1
 TIMER:          .RES 1 ;SLow Snake down
-PLAYER_SPRITE:	.RES 84	;APple head and bodies
+PLAYER_SPRITE:	.RES 164	;APple head and bodies
 controller_data: .RES 1
 .segment "STARTUP"
 RESET:
@@ -94,7 +94,7 @@ CLEARMEMORY: ;$0000 - $07FF
     LDX #%00001000
     STX DIRECTIONS
     ;Snek Snek len + APEL!!!!!
-    LDX #%00000101
+    LDX #%00010101
     STX SNEK_LEN
     ;Timer Clear
     LDX #$00
@@ -263,7 +263,7 @@ move_player_routine:
     ;TIMER check
     LDX TIMER
     INX
-    CPX #$18
+    CPX #$08
     STX TIMER
     BEQ TIME_DONE
     rts
@@ -277,6 +277,17 @@ move_player_routine:
     LDX #$04
     LDY PLAYER_SPRITE, X       ; Player Y pos
     TAX
+    PHA
+
+    
+    ; X-AXI
+    LDX #$05
+    LDA SPRITEDATA, X
+    LDX #$05
+    STA PLAYER_SPRITE, X
+
+    PLA
+    TAX
 
     ; RIght UPDATE
     LDA DIRECTIONS
@@ -284,7 +295,15 @@ move_player_routine:
     BNE NOT_RIGHT
     TXA
     ADC #$07
+    PHA ;save X value
+
+    LDA #$00 ; Change direction of snake head
+    LDX #$06
+    STA PLAYER_SPRITE, X
+
+    PLA ; retrieve X value
     TAX
+    JMP MOVE_DONE
     NOT_RIGHT:
     ;Left UPDATE
     LDA DIRECTIONS
@@ -292,25 +311,71 @@ move_player_routine:
     BNE NOT_LEFT
     TXA
     SBC #$08
+    PHA
+
+    LDA #%01000000 ; Change direction of snake head
+    LDX #$06
+    STA PLAYER_SPRITE, X
+
+    PLA
     TAX
+    JMP MOVE_DONE
     NOT_LEFT:
+
+
+    ; Y-AXI
+    TXA
+    PHA
+
+    LDX #$0D
+    LDA SPRITEDATA, X
+    LDX #$05
+    STA PLAYER_SPRITE, X
+
+    PLA
+    TAX
+
     ;Up UPDATE
     LDA DIRECTIONS
     EOR #%00000010 ;Up
     BNE NOT_UP
     TYA
     SBC #$08
+    PHA
+    TXA
+    PHA
+
+    LDA #%10000000 ; Change direction of snake head
+    LDX #$06
+    STA PLAYER_SPRITE, X
+    
+    PLA
+    TAX
+    PLA
     TAY
+    JMP MOVE_DONE
     NOT_UP:
     ;Down UPDATE
     LDA DIRECTIONS
     EOR #%00000001 ;DOWN
-    BNE NOT_DOWN
+    BNE MOVE_DONE
     TYA
     ADC #$07
-    TAY
-    NOT_DOWN:
+    PHA
+    TXA
+    PHA
 
+
+    LDA #%00000000 ; Change direction of snake head
+    LDX #$06
+    STA PLAYER_SPRITE, X
+    
+    PLA
+    TAX
+    PLA
+    TAY
+    MOVE_DONE:
+    
 
     TXA
     PHA
@@ -485,8 +550,9 @@ PALETTEDATA:
 SPRITEDATA:
     ;Y, SPRITE NUM, attributes, X
     .byte $37, $02, $01, $50 ; apel
-   	.byte $37, $03, %00000000, $40 ;Snake head
+   	.byte $37, $03, %00000000, $40 ;Snake head X-axi
     .byte $37, $01, $00, $38 ;Snake body
+    .byte $00, $00, $00, $00 ;snake head Y-axi
 
 
 
