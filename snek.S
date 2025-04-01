@@ -201,6 +201,24 @@ load_sprites:
     TAX
     DEX
     DONT_RENDER_LOST:
+    ;Check Game WON
+    LDY GAME_STATUS
+    CPY #$02
+    BNE DONT_RENDER_WON
+    LDY #$00
+    LOAD_WON:
+    LDA ROM_WON, Y
+    STA $0200, X
+    INX
+    INY
+    CPY #$0D
+    BNE LOAD_WON
+    TXA
+    SEC
+    SBC #$0D
+    TAX
+    DEX
+    DONT_RENDER_WON:
   
 
 
@@ -291,14 +309,31 @@ move_player_routine:
     CLC
     ADC #$FF
     BCC NO_RESTART
-        LDX #$00
-        STX GAME_STATUS
         JMP RESET
     NO_RESTART:
+    ;PAUSE / Unpause
+    LDA controller_data
+    AND #CONTROLLER_MSK_B
+    CLC
+    ADC #$FF
+    BCC NO_PAUSE_PRESS
+        LDX GAME_STATUS
+        CLC
+        CPX #$04
+        BEQ WAS_PAUSED
+            ;LDX #$04
+            ;STX GAME_STATUS
+            ;JMP NO_PAUSE_PRESS
+        WAS_PAUSED:
+            ;LDX #$00
+            ;STX GAME_STATUS
+    NO_PAUSE_PRESS:
     ;Game status check
-    LDX GAME_STATUS
-    CPX #$01
-    BNE GAME_NOT_OVER
+    LDA GAME_STATUS
+    AND #$07
+    CLC
+    ADC #$FF
+    BCC GAME_NOT_OVER
         rts
     GAME_NOT_OVER:
 
@@ -306,7 +341,7 @@ move_player_routine:
     LDA TIMER
     CLC
     ADC SNEK_LEN
-    CMP #$14
+    CMP #$20
     STA TIMER
     BPL TIME_DONE
     rts
@@ -467,11 +502,11 @@ move_player_routine:
     INX
     STX SNEK_LEN
 
-    CPX #$14
+    CPX #$14 ; Is snake len winning?
     BNE CONTINUE_GAME
-        JMP RESET
+        LDX #$02
+        STX GAME_STATUS
     CONTINUE_GAME:
-
     NOT_APPLE:
 
 
@@ -610,7 +645,10 @@ ROM_LOST:
     .byte $67, $06, %00000000, $78 ; S
     .byte $67, $07, %00000000, $80 ; T
 
-
+ROM_WON:
+    .byte $67, $08, %00000000, $68 ; W
+    .byte $67, $05, %00000000, $70 ; O
+    .byte $67, $09, %00000000, $78 ; N
 
 
 
