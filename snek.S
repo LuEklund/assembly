@@ -22,6 +22,7 @@ CONTROLLER_MSK_RIGHT = $80
 	.byte $00, $00, $00, $00, $00
 .segment "ZEROPAGE"
 DIRECTIONS:     .RES 1 ; RLUD PREV and NEW Directions
+GAME_STATUS:    .RES 1
 HEAD_ON_BODY:    .RES 1  ; Will be used for collison check
 SNEK_LEN:       .RES 1
 TIMER:          .RES 1 ;SLow Snake down
@@ -99,6 +100,9 @@ CLEARMEMORY: ;$0000 - $07FF
     ;Timer Clear
     LDX #$00
     STX TIMER
+    ;GAME GAME_STATUS
+    LDX #$00
+    STX GAME_STATUS
 
     LDX #$00
 LOADPALETTES:
@@ -179,7 +183,27 @@ load_sprites:
         DEX
         BNE MULTI
     TAX
+    ;Check Game LOST
+    LDY GAME_STATUS
+    CPY #$01
+    BNE DONT_RENDER_LOST
+    LDY #$00
+    LOAD_LOST:
+    LDA ROM_LOST, Y
+    STA $0200, X
+    INX
+    INY
+    CPY #$10
+    BNE LOAD_LOST
+    TXA
+    SEC
+    SBC #$10
+    TAX
     DEX
+    DONT_RENDER_LOST:
+  
+
+
 LOADSPRITES_LOOP:
     LDA PLAYER_SPRITE, X
     STA $0200, X
@@ -260,6 +284,24 @@ update_direction_routine:
     rts
 
 move_player_routine:
+
+    ;Start game A
+    LDA controller_data
+    AND #CONTROLLER_MSK_A
+    CLC
+    ADC #$FF
+    BCC NO_RESTART
+        LDX #$00
+        STX GAME_STATUS
+        JMP RESET
+    NO_RESTART:
+    ;Game status check
+    LDX GAME_STATUS
+    CPX #$01
+    BNE GAME_NOT_OVER
+        rts
+    GAME_NOT_OVER:
+
     ;TIMER check
     LDA TIMER
     CLC
@@ -517,7 +559,8 @@ update_bodies_routine:
     LDY PLAYER_SPRITE, X
     CPY HEAD_ON_BODY
     BNE NO_COL
-        JMP RESET
+        LDX #$01
+        STX GAME_STATUS
     NO_COL:
     LDX #$00
     STX HEAD_ON_BODY
@@ -559,6 +602,14 @@ SPRITEDATA:
    	.byte $37, $03, %00000000, $40 ;Snake head X-axi
     .byte $37, $01, $00, $38 ;Snake body
     .byte $00, $00, $00, $00 ;snake head Y-axi
+
+
+ROM_LOST:
+    .byte $67, $04, %00000000, $68 ; L
+    .byte $67, $05, %00000000, $70 ; O
+    .byte $67, $06, %00000000, $78 ; S
+    .byte $67, $07, %00000000, $80 ; T
+
 
 
 
